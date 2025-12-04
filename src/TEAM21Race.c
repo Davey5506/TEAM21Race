@@ -62,6 +62,14 @@ void turn_left(void){
 }
 
 void blank_drive(void){ 
+    uint32_t distance= ultrasonic_measure();
+
+    if(distance<1000){
+        TIM3->CCR3= SERVO_NEUTRAL_PULSE_WIDTH;
+        TIM4->CCR3= SERVO_NEUTRAL_PULSE_WIDTH;
+        return;
+    }
+
     if(!sensors[0] && !sensors[1] && !sensors[2] && !sensors[3]){
         TIM3->CCR3 = SERVO_NEUTRAL_PULSE_WIDTH;
         TIM3->CCR4 = SERVO_NEUTRAL_PULSE_WIDTH;
