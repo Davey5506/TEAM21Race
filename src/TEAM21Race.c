@@ -98,6 +98,7 @@ void blank_drive(void){
         TIM3->CCR3 = SERVO_NEUTRAL_PULSE_WIDTH;
         TIM3->CCR4 = SERVO_NEUTRAL_PULSE_WIDTH;
         mode = 1;
+        TIM4->CR1 &= ~TIM_CR1_CEN; // Stop timer
     }else if(sensors[0] && sensors[1] && sensors[2] && sensors[3]){
         move_forward();
     }else if(sensors[1] && sensors[2]){
@@ -130,6 +131,7 @@ void read_uv_sensors(void){
 void EXTI15_10_IRQHandler(void){
     if(EXTI->PR & EXTI_PR_PR13){
         start = !start;
+        TIM4->CR1 |= TIM_CR1_CEN; // Start timer on first press
         EXTI->PR |= EXTI_PR_PR13; // Clear pending bit
     }
 }
@@ -170,7 +172,7 @@ int main(void){
     TIM3->CCR4 = SERVO_NEUTRAL_PULSE_WIDTH;
     TIM3->CR1 |= TIM_CR1_CEN;
 
-    init_gp_timer(TIM4, 1000, 0xFFFF, true);
+    init_gp_timer(TIM4, 1000, 0xFFFF, false);
     // Set up servos
     SERVO_t left_wheel = {
         .SERVO_PIN_PORT = GPIOC,
