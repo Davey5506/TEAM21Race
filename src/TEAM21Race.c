@@ -41,6 +41,27 @@ uint32_t ultrasonic_measure(void){
     while(read_pin(ECHO_PORT,ECHO_PIN)){
         count++
     }
+    return count;
+}
+
+int direction(void){
+    uint32_t left,right;
+
+    //left
+    turn_left();
+    delay_ms(200);
+    left=ultrasonic_measure();
+
+    //back to center
+    TIM3->CCR3= SERVO_NEUTRAL_PULSE_WIDTH;
+    TIM3->CCR4= SERVO_NEUTRAL_PULSE_WIDTH;
+    delay_ms(150);
+
+    //right
+    turn_right();
+    delay_ms(200);
+    right=ultrasonic_measure();
+
 }
 
 void move_forward(void){
