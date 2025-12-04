@@ -10,7 +10,7 @@
 #define TIM3_FREQ_HZ 1000000
 #define PWM_FREQ_HZ 50
 #define PWM_PERIOD (TIM3_FREQ_HZ / PWM_FREQ_HZ) // 20000 ticks for 20ms period
-#define STOP_SPEED 150
+
 enum PIN_VALUE sensors[4] = {PIN_ERROR, PIN_ERROR, PIN_ERROR, PIN_ERROR};
 enum PIN_VALUE prev_sensors[4] = {PIN_ERROR, PIN_ERROR, PIN_ERROR, PIN_ERROR};
 volatile uint16_t speed[2] = {115, 110};
