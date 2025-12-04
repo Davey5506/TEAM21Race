@@ -17,6 +17,59 @@ volatile uint16_t sensor = 0;
 volatile uint8_t mode = 0;
 volatile bool start = false;
 
+void init_ultrasonic(void){
+    set_pin_mode(TRIG_PORT,TRIG_PIN,OUTPUT);
+    set_pin_mode(ECHO_PORT,ECHO_PIN,INPUT);
+}
+
+void ultrasonic_trigger(void){
+    write_pin(TRIG_PORT,TRIG_PIN,1);
+    delay_us(10);
+    write_pin(TRIG_PORT,TRIG_PIN,0);
+}
+
+uint32_t ultrasonic_measure(void){
+    uint32_t count=0;
+
+    write_pin(TRIG_PORT,TRIG_PIN,1);
+    delay_us(10);
+    write_pin(TRIG_PORT,TRIG_PIN,0);
+
+    while(!read_pin(ECHO_PORT,ECHO_PIN));
+
+    while(read_pin(ECHO_PORT,ECHO_PIN)){
+        count++
+    }
+    return count;
+}
+
+int direction(void){
+    uint32_t left,right;
+
+    //left
+    turn_left();
+    delay_ms(200);
+    left=ultrasonic_measure();
+
+    //back to center
+    TIM3->CCR3= SERVO_NEUTRAL_PULSE_WIDTH;
+    TIM3->CCR4= SERVO_NEUTRAL_PULSE_WIDTH;
+    delay_ms(150);
+
+    //right
+    turn_right();
+    delay_ms(200);
+    right=ultrasonic_measure();
+
+    //back to center again
+    TIM3->CCR3= SERVO_NEUTRAL_PULSE_WIDTH;
+    TIM3->CCR4= SERVO_NEUTRAL_PULSE_WIDTH;
+    delay_ms(150);
+
+    return (left > right) ? 0:1;  //0 is left, 1 is right
+
+}
+
 void move_forward(void){
     TIM3->CCR3 = CCW_MAX_PULSE - speed[0];
     TIM3->CCR4 = CW_MIN_PULSE + speed[1]; 
