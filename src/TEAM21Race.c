@@ -11,6 +11,10 @@
 #define PWM_FREQ_HZ 50
 #define PWM_PERIOD (TIM3_FREQ_HZ / PWM_FREQ_HZ) // 20000 ticks for 20ms period
 #define STOP_SPEED 150
+#define TRIG_PORT GPIOA
+#define TRIG_PIN 1
+#define ECHO_PORT GPIOA
+#define ECHO_PIN 2
 enum PIN_VALUE sensors[4] = {PIN_ERROR, PIN_ERROR, PIN_ERROR, PIN_ERROR};
 enum PIN_VALUE prev_sensors[4] = {PIN_ERROR, PIN_ERROR, PIN_ERROR, PIN_ERROR};
 volatile uint16_t speed[2] = {115, 110};
@@ -58,19 +62,6 @@ int direction(void){
     return (left > right) ? 0:1;  //0 is left, 1 is right
 }  
 
-    //right
-    turn_right();
-    delay_ms(200);
-    right=ultrasonic_measure();
-
-    //back to center again
-    TIM3->CCR3= SERVO_NEUTRAL_PULSE_WIDTH;
-    TIM3->CCR4= SERVO_NEUTRAL_PULSE_WIDTH;
-    delay_ms(150);
-
-    return (left > right) ? 0:1;  //0 is left, 1 is right
-
-}
 
 void move_forward(void){
     TIM3->CCR3 = CCW_MAX_PULSE - speed[0];
