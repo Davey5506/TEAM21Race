@@ -52,6 +52,20 @@ void blank_drive(void){
     }
 }
 
+void read_uv_sensors(void){
+    sensor = 0;
+    for(int i = 3; i >= 0; i--){
+        uint8_t val = !read_pin(PMOD_C.PIN_PORTS[i], PMOD_C.PIN_NUMS[i]);
+        sensors[i] = val;
+    }
+    if(sensors[0]) sensor += 1000;
+    if(sensors[1]) sensor += 100;
+    if(sensors[2]) sensor += 10;
+    if(sensors[3]) sensor += 1;
+
+    display_num(sensor, 0);
+}
+
 int main(void){
     return 0;
 }
