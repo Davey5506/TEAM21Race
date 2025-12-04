@@ -10,30 +10,31 @@
 #define TIM3_FREQ_HZ 1000000
 #define PWM_FREQ_HZ 50
 #define PWM_PERIOD (TIM3_FREQ_HZ / PWM_FREQ_HZ) // 20000 ticks for 20ms period
-
+#define STOP_SPEED 150
 enum PIN_VALUE sensors[4] = {PIN_ERROR, PIN_ERROR, PIN_ERROR, PIN_ERROR};
-volatile uint16_t speed[2] = {95, 90};
+enum PIN_VALUE prev_sensors[4] = {PIN_ERROR, PIN_ERROR, PIN_ERROR, PIN_ERROR};
+volatile uint16_t speed[2] = {115, 110};
+volatile uint8_t stop_lines = 0;
 volatile uint16_t sensor = 0;
-volatile uint8_t mode = 0;
 volatile bool start = false;
 
-void ultrasonic_trigger(void){
-    write_pin(ULTRA_SOUND.TRIG_PORT,ULTRA_SOUND.TRIG_PIN,1);
-    delay_us(10);
-    write_pin(ULTRA_SOUND.TRIG_PORT,ULTRA_SOUND.TRIG_PIN,0);
+void init_ultrasonic(void){
+    set_pin_mode(TRIG_PORT,TRIG_PIN,OUTPUT);
+    set_pin_mode(ECHO_PORT,ECHO_PIN,INPUT);
 }
+
 
 uint32_t ultrasonic_measure(void){
     uint32_t count=0;
 
-    write_pin(ULTRA_SOUND.TRIG_PORT,ULTRA_SOUND.TRIG_PIN,1);
+    write_pin(TRIG_PORT,TRIG_PIN,1);
     delay_us(10);
-    write_pin(ULTRA_SOUND.TRIG_PORT,ULTRA_SOUND.TRIG_PIN,0);
+    write_pin(TRIG_PORT,TRIG_PIN,0);
 
-    while(!read_pin(ULTRA_SOUND.ECHO_PORT,ULTRA_SOUND.ECHO_PIN));
+    while(!read_pin(ECHO_PORT,ECHO_PIN));
 
-    while(read_pin(ULTRA_SOUND.ECHO_PORT,ULTRA_SOUND.ECHO_PIN)){
-        count++;
+    while(read_pin(ECHO_PORT,ECHO_PIN)){
+        count++
     }
     return count;
 }
@@ -41,15 +42,17 @@ uint32_t ultrasonic_measure(void){
 int direction(void){
     uint32_t left,right;
 
-    //left
-    turn_left();
-    delay_ms(200);
+    sensor_left();
     left=ultrasonic_measure();
 
-    //back to center
-    TIM3->CCR3= SERVO_NEUTRAL_PULSE_WIDTH;
-    TIM3->CCR4= SERVO_NEUTRAL_PULSE_WIDTH;
-    delay_ms(150);
+    sensor_center();
+
+    sensor_right();
+
+    sensor_center();
+
+    return (left > right) ? 0:1; // 0 is left, 1 is right
+  
 
     //right
     turn_right();
@@ -72,11 +75,11 @@ void move_forward(void){
 
 void turn_right(void){
     TIM3->CCR3 = CCW_MIN_PULSE + 40; 
-    TIM3->CCR4 = CCW_MIN_PULSE + 30; 
+    TIM3->CCR4 = CCW_MIN_PULSE + 10; 
 }
 
 void turn_left(void){
-    TIM3->CCR3 = CW_MAX_PULSE - 40; 
+    TIM3->CCR3 = CW_MAX_PULSE - 30; 
     TIM3->CCR4 = CW_MAX_PULSE - 50; 
 }
 
@@ -84,8 +87,6 @@ void blank_drive(void){
     if(!sensors[0] && !sensors[1] && !sensors[2] && !sensors[3]){
         TIM3->CCR3 = SERVO_NEUTRAL_PULSE_WIDTH;
         TIM3->CCR4 = SERVO_NEUTRAL_PULSE_WIDTH;
-        TIM4->CR1 &= ~TIM_CR1_CEN;
-        mode = 1;
     }else if(sensors[0] && sensors[1] && sensors[2] && sensors[3]){
         move_forward();
     }else if(sensors[1] && sensors[2]){
@@ -114,13 +115,12 @@ void read_uv_sensors(void){
     if(sensors[2]) sensor += 10;
     if(sensors[3]) sensor += 1;
 
-    //display_num(sensor, 0);
+    display_num(sensor, 0);
 }
 
 void EXTI15_10_IRQHandler(void){
     if(EXTI->PR & EXTI_PR_PR13){
         start = !start;
-        TIM4->CR1 |= TIM_CR1_CEN;
         EXTI->PR |= EXTI_PR_PR13; // Clear pending bit
     }
 }
@@ -129,8 +129,6 @@ int main(void){
     // Initialize SSD
     init_ssd(10);
     init_usart(115200);
-    //Setup TIM4 for 100ms timing
-    init_gp_timer(TIM4, 10U, 0xFFFFU, false);
     // Setup TIM3
     init_gp_timer(TIM3, TIM3_FREQ_HZ, PWM_PERIOD, false);
     // PWM mode 1 for CH3 and CH4
@@ -140,6 +138,7 @@ int main(void){
     TIM3->CCR4 = SERVO_NEUTRAL_PULSE_WIDTH;
     TIM3->CR1 |= TIM_CR1_CEN;
 
+    init_gp_timer(TIM4, 1000, 30000, true);
     // Set up servos
     SERVO_t left_wheel = {
         .SERVO_PIN_PORT = GPIOC,
@@ -154,8 +153,6 @@ int main(void){
     init_servo(&left_wheel);
     init_servo(&right_wheel);
 
-    // Setup ultrasonic
-    init_ultrasound();
     // Setup PMOD C for sensors
     init_pmod(PMOD_C);
     for(int i = 0; i < 4; i++){
@@ -173,9 +170,8 @@ int main(void){
     NVIC_SetPriority(EXTI15_10_IRQn, 2);
 
     while(1){
-        display_num(TIM4->CNT/100, 1);
         read_uv_sensors();
-        if(start && !mode){
+        if(start){
             blank_drive();
         }else{
             TIM3->CCR3 = SERVO_NEUTRAL_PULSE_WIDTH;
