@@ -3,6 +3,7 @@
 
 #define SERVO_NEUTRAL_PULSE_WIDTH 1500 // 1.5ms pulse width for neutral position
 
+// Drive Servos
 #define CW_MAX_PULSE 1480 
 #define CW_MIN_PULSE 1280
 #define CCW_MIN_PULSE 1520
@@ -11,36 +12,34 @@
 #define PWM_FREQ_HZ 50
 #define PWM_PERIOD (TIM3_FREQ_HZ / PWM_FREQ_HZ) // 20000 ticks for 20ms period
 #define STOP_SPEED 150
-#define TRIG_PORT GPIOA
-#define TRIG_PIN 1
-#define ECHO_PORT GPIOA
-#define ECHO_PIN 2
+
+// Ultrasonic Servo
 #define SENSOR_SERVO_CH TIM3->CCR3
 #define SERVO_LEFT 1280
 #define SERVO_CENTER 1500
 #define SERVO_RIGHT 1720
+
 enum PIN_VALUE sensors[4] = {PIN_ERROR, PIN_ERROR, PIN_ERROR, PIN_ERROR};
-enum PIN_VALUE prev_sensors[4] = {PIN_ERROR, PIN_ERROR, PIN_ERROR, PIN_ERROR};
 volatile uint16_t speed[2] = {115, 110};
 volatile uint8_t stop_lines = 0;
 volatile uint16_t sensor = 0;
 volatile bool start = false;
 
 void init_ultrasonic(void){
-    set_pin_mode(TRIG_PORT, TRIG_PIN, OUTPUT);
-    set_pin_mode(ECHO_PORT, ECHO_PIN, INPUT);
+    set_pin_mode(ULTRA_SOUND.TRIG_PORT, ULTRA_SOUND.TRIG_PIN, OUTPUT);
+    set_pin_mode(ULTRA_SOUND.ECHO_PORT, ULTRA_SOUND.ECHO_PIN, INPUT);
 }
 
 uint32_t ultrasonic_measure(void){
     uint32_t count=0;
 
-    write_pin(TRIG_PORT,TRIG_PIN,1);
+    write_pin(ULTRA_SOUND.TRIG_PORT,ULTRA_SOUND.TRIG_PIN,1);
     delay_us(10);
-    write_pin(TRIG_PORT,TRIG_PIN,0);
+    write_pin(ULTRA_SOUND.TRIG_PORT,ULTRA_SOUND.TRIG_PIN,0);
 
-    while(!read_pin(ECHO_PORT,ECHO_PIN));
+    while(!read_pin(ULTRA_SOUND.ECHO_PORT,ULTRA_SOUND.ECHO_PIN));
 
-    while(read_pin(ECHO_PORT,ECHO_PIN)){
+    while(read_pin(ULTRA_SOUND.ECHO_PORT,ULTRA_SOUND.ECHO_PIN)){
         count++;
     }
     return count;
