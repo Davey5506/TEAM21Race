@@ -66,6 +66,13 @@ void read_uv_sensors(void){
     display_num(sensor, 0);
 }
 
+void EXTI15_10_IRQHandler(void){
+    if(EXTI->PR & EXTI_PR_PR13){
+        start = !start;
+        EXTI->PR |= EXTI_PR_PR13; // Clear pending bit
+    }
+}
+
 int main(void){
     // Initialize SSD
     init_ssd(10);
