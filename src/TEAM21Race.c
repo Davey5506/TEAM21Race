@@ -23,6 +23,12 @@ void init_ultrasonic(void){
     set_pin_mode(ECHO_PORT,ECHO_PIN,INPUT);
 }
 
+void ultrasonic_trigger(void){
+    write_pin(TRIG_PORT,TRIG_PIN,1);
+    delay_us(10);
+    write_pin(TRIG_PORT,TRIG_PIN,0);
+}
+
 void move_forward(void){
     TIM3->CCR3 = CCW_MAX_PULSE - speed[0];
     TIM3->CCR4 = CW_MIN_PULSE + speed[1]; 
