@@ -14,6 +14,7 @@
 enum PIN_VALUE sensors[4] = {PIN_ERROR, PIN_ERROR, PIN_ERROR, PIN_ERROR};
 volatile uint16_t speed[2] = {95, 90};
 volatile uint16_t sensor = 0;
+volatile uint8_t mode = 0;
 volatile bool start = false;
 
 void move_forward(void){
@@ -124,7 +125,7 @@ int main(void){
     while(1){
         display_num(TIM4->CNT/100, 1);
         read_uv_sensors();
-        if(start){
+        if(start && !mode){
             blank_drive();
         }else{
             TIM3->CCR3 = SERVO_NEUTRAL_PULSE_WIDTH;
