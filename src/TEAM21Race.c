@@ -118,8 +118,8 @@ int main(void){
     NVIC_SetPriority(EXTI15_10_IRQn, 2);
 
     while(1){
+        read_uv_sensors();
         if(start){
-            read_uv_sensors();
             blank_drive();
         }
     }
