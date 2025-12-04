@@ -186,8 +186,6 @@ int main(void){
         read_uv_sensors();
         if(start && !mode){
             blank_drive();
-        }else if(start && mode){
-            direction();
         }else{
             TIM3->CCR3 = SERVO_NEUTRAL_PULSE_WIDTH;
             TIM3->CCR4 = SERVO_NEUTRAL_PULSE_WIDTH;
