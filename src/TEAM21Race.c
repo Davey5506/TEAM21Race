@@ -18,6 +18,12 @@
 #define SERVO_CENTER 1500
 #define SERVO_LEFT 2000
 
+#define SERVO_NEUTRAL_PULSE_WIDTH 1500
+#define CW_MAX_PULSE 1480 
+#define CW_MIN_PULSE 1280
+#define CCW_MIN_PULSE 1520
+#define CCW_MAX_PULSE 1720
+
 enum PIN_VALUE sensors[4] = {PIN_ERROR, PIN_ERROR, PIN_ERROR, PIN_ERROR};
 volatile uint16_t speed[2] = {115, 110};
 volatile uint8_t mode = 0;
@@ -47,21 +53,6 @@ void sensor_center(void){
 void sensor_right(void){
     TIM8->CCR1 = SERVO_RIGHT;
 }
-
-int direction(void){
-    uint32_t left,right;
-
-    //left
-    TIM8->CCR1 = SERVO_LEFT;
-    left=ultrasonic_measure();
-
-    //right
-    TIM8->CCR1 = SERVO_RIGHT;
-    delay_us(50000); //wait for servo to settle
-    right=ultrasonic_measure();
-
-    return (left > right) ? 0:1;  //0 is left, 1 is right
-}  
 
 
 void move_forward(void){
