@@ -22,6 +22,11 @@ volatile uint8_t stop_lines = 0;
 volatile uint16_t sensor = 0;
 volatile bool start = false;
 
+void init_ultrasonic(void){
+    set_pin_mode(TRIG_PORT, TRIG_PIN, OUTPUT);
+    set_pin_mode(ECHO_PORT, ECHO_PIN, INPUT);
+}
+
 void ultrasonic_trigger(void){
     write_pin(TRIG_PORT,TRIG_PIN,1);
     delay_us(10);
@@ -30,17 +35,26 @@ void ultrasonic_trigger(void){
 
 uint32_t ultrasonic_measure(void){
     uint32_t count=0;
-
-    write_pin(TRIG_PORT,TRIG_PIN,1);
-    delay_us(10);
-    write_pin(TRIG_PORT,TRIG_PIN,0);
-
+    
     while(!read_pin(ECHO_PORT,ECHO_PIN));
 
     while(read_pin(ECHO_PORT,ECHO_PIN)){
         count++;
     }
     return count;
+}
+
+void sensor_left(void){
+    SENSOR_SERVO_CH= SERVO_LEFT;
+    delay_ms(300);
+}
+void sensor_center(void){
+    SENSOR_SERVO_CH= SERVO_CENTER;
+    delay_ms(300);
+}
+void sensor_right(void){
+    SENSOR_SERVO_CH=SERVO_RIGHT;
+    delay_ms(300);
 }
 
 int direction(void){
