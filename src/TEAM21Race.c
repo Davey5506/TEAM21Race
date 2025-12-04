@@ -25,11 +25,6 @@ volatile uint8_t mode = 0;
 volatile uint16_t sensor = 0;
 volatile bool start = false;
 
-void init_ultrasonic(void){
-    set_pin_mode(ULTRA_SOUND.TRIG_PORT, ULTRA_SOUND.TRIG_PIN, OUTPUT);
-    set_pin_mode(ULTRA_SOUND.ECHO_PORT, ULTRA_SOUND.ECHO_PIN, INPUT);
-}
-
 uint32_t ultrasonic_measure(void){
     uint32_t count=0;
 
@@ -159,7 +154,7 @@ void PWM_Output_PC6_Init(void){
 
 int main(void){
     //Initialize ultrasonic sensor
-    init_ultrasonic();
+    init_ultrasound();
     // Initialize SSD
     init_ssd(10);
     init_usart(115200);
