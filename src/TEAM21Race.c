@@ -35,6 +35,8 @@ void blank_drive(void){
     if(!sensors[0] && !sensors[1] && !sensors[2] && !sensors[3]){
         TIM3->CCR3 = SERVO_NEUTRAL_PULSE_WIDTH;
         TIM3->CCR4 = SERVO_NEUTRAL_PULSE_WIDTH;
+        TIM4->CR1 &= ~TIM_CR1_CEN;
+        mode = 1;
     }else if(sensors[0] && sensors[1] && sensors[2] && sensors[3]){
         move_forward();
     }else if(sensors[1] && sensors[2]){
@@ -69,6 +71,7 @@ void read_uv_sensors(void){
 void EXTI15_10_IRQHandler(void){
     if(EXTI->PR & EXTI_PR_PR13){
         start = !start;
+        TIM4->CR1 |= TIM_CR1_CEN;
         EXTI->PR |= EXTI_PR_PR13; // Clear pending bit
     }
 }
@@ -77,6 +80,8 @@ int main(void){
     // Initialize SSD
     init_ssd(10);
     init_usart(115200);
+    //Setup TIM4 for 100ms timing
+    init_gp_timer(TIM4, 10U, 0xFFFFU, false);
     // Setup TIM3
     init_gp_timer(TIM3, TIM3_FREQ_HZ, PWM_PERIOD, false);
     // PWM mode 1 for CH3 and CH4
@@ -86,7 +91,6 @@ int main(void){
     TIM3->CCR4 = SERVO_NEUTRAL_PULSE_WIDTH;
     TIM3->CR1 |= TIM_CR1_CEN;
 
-    init_gp_timer(TIM4, 1000, 30000, true);
     // Set up servos
     SERVO_t left_wheel = {
         .SERVO_PIN_PORT = GPIOC,
@@ -118,6 +122,7 @@ int main(void){
     NVIC_SetPriority(EXTI15_10_IRQn, 2);
 
     while(1){
+        display_num(TIM4->CNT/100, 1);
         read_uv_sensors();
         if(start){
             blank_drive();
