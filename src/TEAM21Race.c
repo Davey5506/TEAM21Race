@@ -123,6 +123,9 @@ int main(void){
         read_uv_sensors();
         if(start){
             blank_drive();
+        }else{
+            TIM3->CCR3 = SERVO_NEUTRAL_PULSE_WIDTH;
+            TIM3->CCR4 = SERVO_NEUTRAL_PULSE_WIDTH;
         }
     }
     return 0;
