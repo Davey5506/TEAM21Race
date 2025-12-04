@@ -31,15 +31,13 @@ void init_ultrasonic(void){
     set_pin_mode(ECHO_PORT, ECHO_PIN, INPUT);
 }
 
-void ultrasonic_trigger(void){
+uint32_t ultrasonic_measure(void){
+    uint32_t count=0;
+
     write_pin(TRIG_PORT,TRIG_PIN,1);
     delay_us(10);
     write_pin(TRIG_PORT,TRIG_PIN,0);
-}
 
-uint32_t ultrasonic_measure(void){
-    uint32_t count=0;
-    
     while(!read_pin(ECHO_PORT,ECHO_PIN));
 
     while(read_pin(ECHO_PORT,ECHO_PIN)){
@@ -139,6 +137,8 @@ void EXTI15_10_IRQHandler(void){
 }
 
 int main(void){
+    //Initialize ultrasonic sensor
+    init_ultrasonic();
     // Initialize SSD
     init_ssd(10);
     init_usart(115200);
