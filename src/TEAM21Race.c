@@ -1,5 +1,6 @@
 #include "hat.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 #define SERVO_NEUTRAL_PULSE_WIDTH 1500 // 1.5ms pulse width for neutral position
 
@@ -14,10 +15,9 @@
 #define STOP_SPEED 150
 
 // Ultrasonic Servo
-#define SENSOR_SERVO_CH TIM8->CCR3
-#define SERVO_LEFT 1280
+#define SERVO_RIGHT 1000
 #define SERVO_CENTER 1500
-#define SERVO_RIGHT 1720
+#define SERVO_LEFT 2000
 
 enum PIN_VALUE sensors[4] = {PIN_ERROR, PIN_ERROR, PIN_ERROR, PIN_ERROR};
 volatile uint16_t speed[2] = {115, 110};
@@ -25,16 +25,10 @@ volatile uint8_t mode = 0;
 volatile uint16_t sensor = 0;
 volatile bool start = false;
 
-void init_ultrasonic(void){
-    set_pin_mode(ULTRA_SOUND.TRIG_PORT, ULTRA_SOUND.TRIG_PIN, OUTPUT);
-    set_pin_mode(ULTRA_SOUND.ECHO_PORT, ULTRA_SOUND.ECHO_PIN, INPUT);
-}
-
 uint32_t ultrasonic_measure(void){
     uint32_t count=0;
 
     write_pin(ULTRA_SOUND.TRIG_PORT,ULTRA_SOUND.TRIG_PIN,1);
-    delay_us(10);
     write_pin(ULTRA_SOUND.TRIG_PORT,ULTRA_SOUND.TRIG_PIN,0);
 
     while(!read_pin(ULTRA_SOUND.ECHO_PORT,ULTRA_SOUND.ECHO_PIN));
@@ -46,33 +40,26 @@ uint32_t ultrasonic_measure(void){
 }
 
 void sensor_left(void){
-    SENSOR_SERVO_CH= SERVO_LEFT;
-    delay_us(300);
+    TIM8->CCR1 = SERVO_LEFT;
 }
 void sensor_center(void){
-    SENSOR_SERVO_CH= SERVO_CENTER;
-    delay_us(300);
+    TIM8->CCR1 = SERVO_CENTER;
 }
 void sensor_right(void){
-    SENSOR_SERVO_CH=SERVO_RIGHT;
-    delay_us(300);
+    TIM8->CCR1 = SERVO_RIGHT;
 }
 
 int direction(void){
     uint32_t left,right;
 
     //left
-    sensor_left();
+    TIM8->CCR1 = SERVO_LEFT;
     left=ultrasonic_measure();
 
-    //back to center
-    sensor_center();
-
     //right
-    sensor_right();
+    TIM8->CCR1 = SERVO_RIGHT;
+    delay_us(50000); //wait for servo to settle
     right=ultrasonic_measure();
-
-    sensor_center();
 
     return (left > right) ? 0:1;  //0 is left, 1 is right
 }  
@@ -148,18 +135,20 @@ void PWM_Output_PC6_Init(void){
     TIM8->CCMR1 |= (6 << TIM_CCMR1_OC1M_Pos);
     TIM8->CCMR1 |= TIM_CCMR1_OC1PE;
     
-    // 4. Enable Output and Main Output Enable
-    TIM8->CCER |= TIM_CCER_CC4E;
+    // 4. Enable Channel 1 Output and Main Output Enable
+    TIM8->CCER |= TIM_CCER_CC1E;
     TIM8->BDTR |= TIM_BDTR_MOE;
 
+    TIM8->CCR1 = SERVO_CENTER; // Set initial position
     TIM8->CNT = 0;
     TIM8->EGR = TIM_EGR_UG;
+
     TIM8->CR1 |= TIM_CR1_CEN;
 }
 
 int main(void){
     //Initialize ultrasonic sensor
-    init_ultrasonic();
+    init_ultrasound();
     // Initialize SSD
     init_ssd(10);
     init_usart(115200);
@@ -189,11 +178,11 @@ int main(void){
         .SERVO_PWM_PIN = 6,
         .SERVO_FEEDBACK_PIN = 16 // Does not exist, placeholder
     };
-    init_servo(&ultrasound_servo);
-    init_servo(&left_wheel);
     init_servo(&right_wheel);
+    init_servo(&left_wheel);
 
     PWM_Output_PC6_Init();
+    init_servo(&ultrasound_servo); // Configures PC6 to AF3 for TIM8
 
     // Setup PMOD C for sensors
     init_pmod(PMOD_C);
