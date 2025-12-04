@@ -214,7 +214,7 @@ int main(void){
         read_uv_sensors();
         uint32_t distance = ultrasonic_measure();
         if(start && !mode){
-            if(distance < 1000){
+            if(distance < 1000){ //we might have to adjust 1000 since its a placeholder distance
                 avoid_wall();  
             }else{
                 blank_drive();  
