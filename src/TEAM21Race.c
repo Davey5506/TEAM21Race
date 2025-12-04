@@ -37,6 +37,8 @@ void blank_drive(void){
     if(!sensors[0] && !sensors[1] && !sensors[2] && !sensors[3]){
         TIM3->CCR3 = SERVO_NEUTRAL_PULSE_WIDTH;
         TIM3->CCR4 = SERVO_NEUTRAL_PULSE_WIDTH;
+    }else if(sensors[0] && sensors[1] && sensors[2] && sensors[3]){
+        move_forward();
     }else if(sensors[1] && sensors[2]){
         if(sensors[0]){
             turn_left();
