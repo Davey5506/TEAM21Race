@@ -13,8 +13,8 @@
 #define PWM_PERIOD (TIM3_FREQ_HZ / PWM_FREQ_HZ) // 20000 ticks for 20ms period
 #define STOP_SPEED 150
 
-// Ultrasonic Servo (PC6 -> TIM8_CH1)
-#define SENSOR_SERVO_CH TIM8->CCR1
+// Ultrasonic Servo
+#define SENSOR_SERVO_CH TIM8->CCR3
 #define SERVO_LEFT 1280
 #define SERVO_CENTER 1500
 #define SERVO_RIGHT 1720
@@ -24,6 +24,11 @@ volatile uint16_t speed[2] = {115, 110};
 volatile uint8_t mode = 0;
 volatile uint16_t sensor = 0;
 volatile bool start = false;
+
+void init_ultrasonic(void){
+    set_pin_mode(ULTRA_SOUND.TRIG_PORT, ULTRA_SOUND.TRIG_PIN, OUTPUT);
+    set_pin_mode(ULTRA_SOUND.ECHO_PORT, ULTRA_SOUND.ECHO_PIN, INPUT);
+}
 
 uint32_t ultrasonic_measure(void){
     uint32_t count=0;
@@ -92,7 +97,6 @@ void blank_drive(void){
     if(!sensors[0] && !sensors[1] && !sensors[2] && !sensors[3]){
         TIM3->CCR3 = SERVO_NEUTRAL_PULSE_WIDTH;
         TIM3->CCR4 = SERVO_NEUTRAL_PULSE_WIDTH;
-        TIM4->CR1 &= ~TIM_CR1_CEN; // Stop timer
         mode = 1;
     }else if(sensors[0] && sensors[1] && sensors[2] && sensors[3]){
         move_forward();
@@ -126,12 +130,11 @@ void read_uv_sensors(void){
 void EXTI15_10_IRQHandler(void){
     if(EXTI->PR & EXTI_PR_PR13){
         start = !start;
-        TIM4->CR1 |= TIM_CR1_CEN;
         EXTI->PR |= EXTI_PR_PR13; // Clear pending bit
     }
 }
 
-void PWM_ultrasound_servo_init(void){
+void PWM_Output_PC6_Init(void){
     RCC->APB2ENR |= RCC_APB2ENR_TIM8EN;
     TIM8->CR1 &= ~TIM_CR1_CEN;    
     // 2. Set Timer Frequency (1MHz clock, 20ms period)
@@ -140,11 +143,11 @@ void PWM_ultrasound_servo_init(void){
 
     // 3. Configure TIM8 Channel 1 for PWM Mode 1
     TIM8->CCMR1 &= ~(TIM_CCMR1_OC1M);
-    TIM8->CCMR1 |= (TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1); // PWM Mode 1
+    TIM8->CCMR1 |= (6 << TIM_CCMR1_OC1M_Pos);
     TIM8->CCMR1 |= TIM_CCMR1_OC1PE;
     
-    // 4. Enable Channel 1 Output and Main Output Enable
-    TIM8->CCER |= TIM_CCER_CC1E;
+    // 4. Enable Output and Main Output Enable
+    TIM8->CCER |= TIM_CCER_CC4E;
     TIM8->BDTR |= TIM_BDTR_MOE;
 
     TIM8->CNT = 0;
@@ -154,7 +157,7 @@ void PWM_ultrasound_servo_init(void){
 
 int main(void){
     //Initialize ultrasonic sensor
-    init_ultrasound();
+    init_ultrasonic();
     // Initialize SSD
     init_ssd(10);
     init_usart(115200);
@@ -167,7 +170,7 @@ int main(void){
     TIM3->CCR4 = SERVO_NEUTRAL_PULSE_WIDTH;
     TIM3->CR1 |= TIM_CR1_CEN;
 
-    init_gp_timer(TIM4, 1000, 0xFFFF, false);
+    init_gp_timer(TIM4, 1000, 0xFFFF, true);
     // Set up servos
     SERVO_t left_wheel = {
         .SERVO_PIN_PORT = GPIOC,
@@ -179,7 +182,7 @@ int main(void){
         .SERVO_PWM_PIN = 9,
         .SERVO_FEEDBACK_PIN = 16 // Does not exist, placeholder
     };
-    SERVO_t ultrasound_servo = {
+    SERVO_t ultrasound_servo= {
         .SERVO_PIN_PORT = GPIOC,
         .SERVO_PWM_PIN = 6,
         .SERVO_FEEDBACK_PIN = 16 // Does not exist, placeholder
@@ -188,7 +191,7 @@ int main(void){
     init_servo(&left_wheel);
     init_servo(&right_wheel);
 
-    PWM_ultrasound_servo_init();
+    PWM_Output_PC6_Init();
 
     // Setup PMOD C for sensors
     init_pmod(PMOD_C);
