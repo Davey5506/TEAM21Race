@@ -13,8 +13,8 @@
 #define PWM_PERIOD (TIM3_FREQ_HZ / PWM_FREQ_HZ) // 20000 ticks for 20ms period
 #define STOP_SPEED 150
 
-// Ultrasonic Servo
-#define SENSOR_SERVO_CH TIM8->CCR3
+// Ultrasonic Servo (PC6 -> TIM8_CH1)
+#define SENSOR_SERVO_CH TIM8->CCR1
 #define SERVO_LEFT 1280
 #define SERVO_CENTER 1500
 #define SERVO_RIGHT 1720
@@ -131,7 +131,7 @@ void EXTI15_10_IRQHandler(void){
     }
 }
 
-void PWM_Output_PC6_Init(void){
+void PWM_ultrasound_servo_init(void){
     RCC->APB2ENR |= RCC_APB2ENR_TIM8EN;
     TIM8->CR1 &= ~TIM_CR1_CEN;    
     // 2. Set Timer Frequency (1MHz clock, 20ms period)
@@ -140,11 +140,11 @@ void PWM_Output_PC6_Init(void){
 
     // 3. Configure TIM8 Channel 1 for PWM Mode 1
     TIM8->CCMR1 &= ~(TIM_CCMR1_OC1M);
-    TIM8->CCMR1 |= (6 << TIM_CCMR1_OC1M_Pos);
+    TIM8->CCMR1 |= (TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1); // PWM Mode 1
     TIM8->CCMR1 |= TIM_CCMR1_OC1PE;
     
-    // 4. Enable Output and Main Output Enable
-    TIM8->CCER |= TIM_CCER_CC4E;
+    // 4. Enable Channel 1 Output and Main Output Enable
+    TIM8->CCER |= TIM_CCER_CC1E;
     TIM8->BDTR |= TIM_BDTR_MOE;
 
     TIM8->CNT = 0;
@@ -179,7 +179,7 @@ int main(void){
         .SERVO_PWM_PIN = 9,
         .SERVO_FEEDBACK_PIN = 16 // Does not exist, placeholder
     };
-    SERVO_t ultrasound_servo= {
+    SERVO_t ultrasound_servo = {
         .SERVO_PIN_PORT = GPIOC,
         .SERVO_PWM_PIN = 6,
         .SERVO_FEEDBACK_PIN = 16 // Does not exist, placeholder
@@ -188,7 +188,7 @@ int main(void){
     init_servo(&left_wheel);
     init_servo(&right_wheel);
 
-    PWM_Output_PC6_Init();
+    PWM_ultrasound_servo_init();
 
     // Setup PMOD C for sensors
     init_pmod(PMOD_C);
