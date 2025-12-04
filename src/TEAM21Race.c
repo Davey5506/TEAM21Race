@@ -62,6 +62,13 @@ int direction(void){
     delay_ms(200);
     right=ultrasonic_measure();
 
+    //back to center again
+    TIM3->CCR3= SERVO_NEUTRAL_PULSE_WIDTH;
+    TIM3->CCR4= SERVO_NEUTRAL_PULSE_WIDTH;
+    delay_ms(150);
+
+    return (left > right) ? 0:1;  //0 is left, 1 is right
+
 }
 
 void move_forward(void){
