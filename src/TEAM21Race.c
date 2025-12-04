@@ -67,5 +67,47 @@ void read_uv_sensors(void){
 }
 
 int main(void){
+    // Initialize SSD
+    init_ssd(10);
+    init_usart(115200);
+    // Setup TIM3
+    init_gp_timer(TIM3, TIM3_FREQ_HZ, PWM_PERIOD, false);
+    // PWM mode 1 for CH3 and CH4
+    TIM3->CCMR2 |= (TIM_CCMR2_OC3M_2 | TIM_CCMR2_OC3M_1) | (TIM_CCMR2_OC4M_2 | TIM_CCMR2_OC4M_1);
+    TIM3->CCER |= TIM_CCER_CC3E | TIM_CCER_CC4E; // Enable CH3 and CH4 outputs
+    TIM3->CCR3 = SERVO_NEUTRAL_PULSE_WIDTH; // PC8
+    TIM3->CCR4 = SERVO_NEUTRAL_PULSE_WIDTH;
+    TIM3->CR1 |= TIM_CR1_CEN;
+
+    init_gp_timer(TIM4, 1000, 30000, true);
+    // Set up servos
+    SERVO_t left_wheel = {
+        .SERVO_PIN_PORT = GPIOC,
+        .SERVO_PWM_PIN = 8,
+        .SERVO_FEEDBACK_PIN = 16 // Does not exist, placeholder
+    };
+    SERVO_t right_wheel = {
+        .SERVO_PIN_PORT = GPIOC,
+        .SERVO_PWM_PIN = 9,
+        .SERVO_FEEDBACK_PIN = 16 // Does not exist, placeholder
+    };
+    init_servo(&left_wheel);
+    init_servo(&right_wheel);
+
+    // Setup PMOD C for sensors
+    init_pmod(PMOD_C);
+    for(int i = 0; i < 4; i++){
+        set_pin_mode(PMOD_C.PIN_PORTS[i], PMOD_C.PIN_NUMS[i], INPUT);
+        set_pin_pull(PMOD_C.PIN_PORTS[i], PMOD_C.PIN_NUMS[i], PULL_DOWN);
+    }
+
+    RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+    SYSCFG->EXTICR[3] |= SYSCFG_EXTICR4_EXTI13_PC;
+    EXTI->IMR |= EXTI_IMR_IM13; 
+    EXTI->FTSR |= EXTI_FTSR_TR13;
+    set_pin_pull(GPIOC, 13, PULL_UP);
+    set_pin_mode(GPIOC, 13, INPUT);
+    NVIC_EnableIRQ(EXTI15_10_IRQn);
+    NVIC_SetPriority(EXTI15_10_IRQn, 2);
     return 0;
 }
