@@ -44,15 +44,6 @@ uint32_t ultrasonic_measure(void){
     return count;
 }
 
-void sensor_left(void){
-    TIM8->CCR1 = SERVO_LEFT;
-}
-void sensor_center(void){
-    TIM8->CCR1 = SERVO_CENTER;
-}
-void sensor_right(void){
-    TIM8->CCR1 = SERVO_RIGHT;
-}
 
 
 void move_forward(void){
