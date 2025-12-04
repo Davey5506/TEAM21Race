@@ -1,6 +1,5 @@
 #include "hat.h"
 #include <stdio.h>
-#include <stdlib.h>
 
 #define SERVO_NEUTRAL_PULSE_WIDTH 1500 // 1.5ms pulse width for neutral position
 
@@ -25,7 +24,7 @@ volatile uint8_t mode = 0;
 volatile uint16_t sensor = 0;
 volatile bool start = false;
 
-uint32_t ultrasonic_measure(void){
+uint32_t ultrasonic_measure(void){ 
     uint32_t count=0;
 
     write_pin(ULTRA_SOUND.TRIG_PORT,ULTRA_SOUND.TRIG_PIN,1);
@@ -118,7 +117,7 @@ void read_uv_sensors(void){
 void EXTI15_10_IRQHandler(void){
     if(EXTI->PR & EXTI_PR_PR13){
         start = !start;
-        TIM4->CR1 |= TIM_CR1_CEN; // Start timer on first press
+        TIM4->CR1 |= TIM_CR1_CEN;
         EXTI->PR |= EXTI_PR_PR13; // Clear pending bit
     }
 }
