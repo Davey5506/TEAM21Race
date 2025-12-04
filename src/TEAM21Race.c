@@ -60,6 +60,7 @@ void turn_left(void){
     TIM3->CCR3 = CW_MAX_PULSE - 30; 
     TIM3->CCR4 = CW_MAX_PULSE - 50; 
 }
+
 void avoid_wall(void){
     uint32_t left,center,right;
 
