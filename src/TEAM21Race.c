@@ -60,15 +60,34 @@ void turn_left(void){
     TIM3->CCR3 = CW_MAX_PULSE - 30; 
     TIM3->CCR4 = CW_MAX_PULSE - 50; 
 }
+void avoid_wall(void){
+    uint32_t left,center,right;
+
+    TIM8->CCR1=SERVO_LEFT;
+    delay_us(100);
+    left=ultrasonic_measure();
+
+    TIM8->CCR1=SERVO_CENTER;
+    delay_us(100);
+    center=ultrasonic_measure();
+
+    TIM8->CCR1=SERVO_RIGHT;
+    delay_us(100);
+    right=ultrasonic_measure();
+
+    if(center > 1000){
+        move_forward();
+    }else if(left> right){
+        turn_left();
+    }else{
+        turn_right();
+    }
+
+    TIM8->CCR1 = SERVO_CENTER;    // Reset sensor to center
+}
+
 
 void blank_drive(void){ 
-    uint32_t distance= ultrasonic_measure();
-
-    if(distance<1000){
-        TIM3->CCR3= SERVO_NEUTRAL_PULSE_WIDTH;
-        TIM4->CCR3= SERVO_NEUTRAL_PULSE_WIDTH;
-        return;
-    }
 
     if(!sensors[0] && !sensors[1] && !sensors[2] && !sensors[3]){
         TIM3->CCR3 = SERVO_NEUTRAL_PULSE_WIDTH;
@@ -192,8 +211,13 @@ int main(void){
     while(1){
         display_num(TIM4->CNT/100, 1);
         read_uv_sensors();
+        uint32_t distance = ultrasonic_measure();
         if(start && !mode){
-            blank_drive();
+            if(distance < 1000){
+                avoid_wall();  
+            }else{
+                blank_drive();  
+            }
         }else{
             TIM3->CCR3 = SERVO_NEUTRAL_PULSE_WIDTH;
             TIM3->CCR4 = SERVO_NEUTRAL_PULSE_WIDTH;
