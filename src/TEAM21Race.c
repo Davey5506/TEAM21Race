@@ -18,6 +18,11 @@ volatile uint8_t stop_lines = 0;
 volatile uint16_t sensor = 0;
 volatile bool start = false;
 
+void init_ultrasonic(void){
+    set_pin_mode(TRIG_PORT,TRIG_PIN,OUTPUT);
+    set_pin_mode(ECHO_PORT,ECHO_PIN,INPUT);
+}
+
 void move_forward(void){
     TIM3->CCR3 = CCW_MAX_PULSE - speed[0];
     TIM3->CCR4 = CW_MIN_PULSE + speed[1]; 
