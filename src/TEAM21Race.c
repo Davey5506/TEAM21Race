@@ -17,28 +17,23 @@ volatile uint16_t sensor = 0;
 volatile uint8_t mode = 0;
 volatile bool start = false;
 
-void init_ultrasonic(void){
-    set_pin_mode(TRIG_PORT,TRIG_PIN,OUTPUT);
-    set_pin_mode(ECHO_PORT,ECHO_PIN,INPUT);
-}
-
 void ultrasonic_trigger(void){
-    write_pin(TRIG_PORT,TRIG_PIN,1);
+    write_pin(ULTRA_SOUND.TRIG_PORT,ULTRA_SOUND.TRIG_PIN,1);
     delay_us(10);
-    write_pin(TRIG_PORT,TRIG_PIN,0);
+    write_pin(ULTRA_SOUND.TRIG_PORT,ULTRA_SOUND.TRIG_PIN,0);
 }
 
 uint32_t ultrasonic_measure(void){
     uint32_t count=0;
 
-    write_pin(TRIG_PORT,TRIG_PIN,1);
+    write_pin(ULTRA_SOUND.TRIG_PORT,ULTRA_SOUND.TRIG_PIN,1);
     delay_us(10);
-    write_pin(TRIG_PORT,TRIG_PIN,0);
+    write_pin(ULTRA_SOUND.TRIG_PORT,ULTRA_SOUND.TRIG_PIN,0);
 
-    while(!read_pin(ECHO_PORT,ECHO_PIN));
+    while(!read_pin(ULTRA_SOUND.ECHO_PORT,ULTRA_SOUND.ECHO_PIN));
 
-    while(read_pin(ECHO_PORT,ECHO_PIN)){
-        count++
+    while(read_pin(ULTRA_SOUND.ECHO_PORT,ULTRA_SOUND.ECHO_PIN)){
+        count++;
     }
     return count;
 }
@@ -159,6 +154,8 @@ int main(void){
     init_servo(&left_wheel);
     init_servo(&right_wheel);
 
+    // Setup ultrasonic
+    init_ultrasound();
     // Setup PMOD C for sensors
     init_pmod(PMOD_C);
     for(int i = 0; i < 4; i++){
