@@ -13,7 +13,7 @@
 #define STOP_SPEED 150
 enum PIN_VALUE sensors[4] = {PIN_ERROR, PIN_ERROR, PIN_ERROR, PIN_ERROR};
 enum PIN_VALUE prev_sensors[4] = {PIN_ERROR, PIN_ERROR, PIN_ERROR, PIN_ERROR};
-volatile uint16_t speed[2] = {115, 110};
+volatile uint16_t speed[2] = {110, 116};
 volatile uint8_t stop_lines = 0;
 volatile uint16_t sensor = 0;
 volatile bool start = false;
