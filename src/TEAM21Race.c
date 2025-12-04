@@ -15,6 +15,10 @@
 #define TRIG_PIN 1
 #define ECHO_PORT GPIOA
 #define ECHO_PIN 2
+#define SENSOR_SERVO_CH TIM3->CCR3
+#define SERVO_LEFT 1280
+#define SERVO_CENTER 1500
+#define SERVO_RIGHT 1720
 enum PIN_VALUE sensors[4] = {PIN_ERROR, PIN_ERROR, PIN_ERROR, PIN_ERROR};
 enum PIN_VALUE prev_sensors[4] = {PIN_ERROR, PIN_ERROR, PIN_ERROR, PIN_ERROR};
 volatile uint16_t speed[2] = {115, 110};
