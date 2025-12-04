@@ -109,5 +109,12 @@ int main(void){
     set_pin_mode(GPIOC, 13, INPUT);
     NVIC_EnableIRQ(EXTI15_10_IRQn);
     NVIC_SetPriority(EXTI15_10_IRQn, 2);
+
+    while(1){
+        if(start){
+            read_uv_sensors();
+            blank_drive();
+        }
+    }
     return 0;
 }
