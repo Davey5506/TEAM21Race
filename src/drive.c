@@ -4,22 +4,22 @@
 static enum PIN_VALUE sensors[4] = {PIN_ERROR, PIN_ERROR, PIN_ERROR, PIN_ERROR};
 static volatile uint16_t speed[2] = {115, 110};
 
-static void move_forward(void){
+void move_forward(void){
     TIM3->CCR3 = CCW_MAX_PULSE - speed[0];
     TIM3->CCR4 = CW_MIN_PULSE + speed[1]; 
 }
 
-static void turn_right(void){
+void turn_right(void){
     TIM3->CCR3 = CCW_MIN_PULSE + 40; 
     TIM3->CCR4 = CCW_MIN_PULSE + 10; 
 }
 
-static void turn_left(void){
+void turn_left(void){
     TIM3->CCR3 = CW_MAX_PULSE - 30; 
     TIM3->CCR4 = CW_MAX_PULSE - 50; 
 }
 
-void blank_drive(uint8_t* mode){ 
+void blank_drive(volatile uint8_t* mode){ 
     if(!sensors[0] && !sensors[1] && !sensors[2] && !sensors[3]){
         TIM3->CCR3 = SERVO_NEUTRAL_PULSE_WIDTH;
         TIM3->CCR4 = SERVO_NEUTRAL_PULSE_WIDTH;
@@ -42,7 +42,7 @@ void blank_drive(uint8_t* mode){
     }
 }
 
-void read_uv_sensors(uint16_t* sensor){
+void read_uv_sensors(volatile uint16_t* sensor){
     *sensor = 0;
     for(int i = 3; i >= 0; i--){
         uint8_t val = !read_pin(PMOD_C.PIN_PORTS[i], PMOD_C.PIN_NUMS[i]);

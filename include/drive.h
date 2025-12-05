@@ -8,7 +8,10 @@
 #define CCW_MIN_PULSE 1520
 #define CCW_MAX_PULSE 1720
 
-void blank_drive(uint8_t* mode);
-void read_uv_sensors(uint16_t* sensor);
+void blank_drive(volatile uint8_t* mode);
+void read_uv_sensors(volatile uint16_t* sensor);
+void move_forward(void);
+void turn_right(void);
+void turn_left(void);
 
 #endif // DRIVE_H

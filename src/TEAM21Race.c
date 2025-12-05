@@ -1,5 +1,7 @@
 #include "hat.h"
 #include "drive.h"
+#include "avoid.h"
+#include "usMeasure.h"
 #include <stdio.h>
 
 #define SERVO_NEUTRAL_PULSE_WIDTH 1500 // 1.5ms pulse width for neutral position
@@ -18,18 +20,11 @@ volatile uint8_t mode = 0;
 volatile uint16_t sensor = 0;
 volatile bool start = false;
 
-uint32_t ultrasonic_measure(void){ 
-    uint32_t count=0;
-
-    write_pin(ULTRA_SOUND.TRIG_PORT,ULTRA_SOUND.TRIG_PIN,1);
-    write_pin(ULTRA_SOUND.TRIG_PORT,ULTRA_SOUND.TRIG_PIN,0);
-
-    while(!read_pin(ULTRA_SOUND.ECHO_PORT,ULTRA_SOUND.ECHO_PIN));
-
-    while(read_pin(ULTRA_SOUND.ECHO_PORT,ULTRA_SOUND.ECHO_PIN)){
-        count++;
-    }
-    return count;
+void delay_us(uint32_t us){
+    uint32_t start = SysTick->VAL;
+    uint32_t ticks = (SYSTEM_FREQ / 1000000) * us;
+    while((SysTick->VAL - start) < ticks);
+    return;
 }
 
 void EXTI15_10_IRQHandler(void){
@@ -121,11 +116,10 @@ int main(void){
     NVIC_EnableIRQ(EXTI15_10_IRQn);
     NVIC_SetPriority(EXTI15_10_IRQn, 2);
 
-    uint32_t distance = 0;
     while(1){
         display_num(TIM4->CNT/100, 1);
         read_uv_sensors(&sensor);
-        distance = ultrasonic_measure();
+        trigger_pulse();
         if(start){
             send_string("Started\r\n");
             if(distance < 1000){ //we might have to adjust 1000 since its a placeholder distance
