@@ -1,4 +1,5 @@
 #include "hat.h"
+#include "drive.h"
 #include <stdio.h>
 
 #define SERVO_NEUTRAL_PULSE_WIDTH 1500 // 1.5ms pulse width for neutral position
@@ -11,21 +12,8 @@
 #define TIM3_FREQ_HZ 1000000
 #define PWM_FREQ_HZ 50
 #define PWM_PERIOD (TIM3_FREQ_HZ / PWM_FREQ_HZ) // 20000 ticks for 20ms period
-#define STOP_SPEED 150
+#define STOP_SPEED 1500
 
-// Ultrasonic Servo
-#define SERVO_RIGHT 1000
-#define SERVO_CENTER 1500
-#define SERVO_LEFT 2000
-
-#define SERVO_NEUTRAL_PULSE_WIDTH 1500
-#define CW_MAX_PULSE 1480 
-#define CW_MIN_PULSE 1280
-#define CCW_MIN_PULSE 1520
-#define CCW_MAX_PULSE 1720
-
-enum PIN_VALUE sensors[4] = {PIN_ERROR, PIN_ERROR, PIN_ERROR, PIN_ERROR};
-volatile uint16_t speed[2] = {115, 110};
 volatile uint8_t mode = 0;
 volatile uint16_t sensor = 0;
 volatile bool start = false;
@@ -44,91 +32,15 @@ uint32_t ultrasonic_measure(void){
     return count;
 }
 
-
-
-void move_forward(void){
-    TIM3->CCR3 = CCW_MAX_PULSE - speed[0];
-    TIM3->CCR4 = CW_MIN_PULSE + speed[1]; 
-}
-
-void turn_right(void){
-    TIM3->CCR3 = CCW_MIN_PULSE + 40; 
-    TIM3->CCR4 = CCW_MIN_PULSE + 10; 
-}
-
-void turn_left(void){
-    TIM3->CCR3 = CW_MAX_PULSE - 30; 
-    TIM3->CCR4 = CW_MAX_PULSE - 50; 
-}
-
-void avoid_wall(void){
-    uint32_t left,center,right;
-
-    TIM8->CCR1=SERVO_LEFT;
-    delay_us(100);
-    left=ultrasonic_measure();
-
-    TIM8->CCR1=SERVO_CENTER;
-    delay_us(100);
-    center=ultrasonic_measure();
-
-    TIM8->CCR1=SERVO_RIGHT;
-    delay_us(100);
-    right=ultrasonic_measure();
-
-    if(center > 1000){
-        move_forward();
-    }else if(left> right){
-        turn_left();
-    }else{
-        turn_right();
-    }
-
-    TIM8->CCR1 = SERVO_CENTER;    // Reset sensor to center
-}
-
-
-void blank_drive(void){ 
-
-    if(!sensors[0] && !sensors[1] && !sensors[2] && !sensors[3]){
-        TIM3->CCR3 = SERVO_NEUTRAL_PULSE_WIDTH;
-        TIM3->CCR4 = SERVO_NEUTRAL_PULSE_WIDTH;
-        mode = 1;
-        TIM4->CR1 &= ~TIM_CR1_CEN; // Stop timer
-    }else if(sensors[0] && sensors[1] && sensors[2] && sensors[3]){
-        move_forward();
-    }else if(sensors[1] && sensors[2]){
-        if(sensors[0]){
-            turn_left();
-        }else if(sensors[3]){
-            turn_right();
-        }else{
-            move_forward();
-        }
-    }else if(sensors[0] && sensors[1]){
-        turn_left();
-    }else if(sensors[2] && sensors[3]){
-        turn_right();
-    }
-}
-
-void read_uv_sensors(void){
-    sensor = 0;
-    for(int i = 3; i >= 0; i--){
-        uint8_t val = !read_pin(PMOD_C.PIN_PORTS[i], PMOD_C.PIN_NUMS[i]);
-        sensors[i] = val;
-    }
-    if(sensors[0]) sensor += 1000;
-    if(sensors[1]) sensor += 100;
-    if(sensors[2]) sensor += 10;
-    if(sensors[3]) sensor += 1;
-}
-
 void EXTI15_10_IRQHandler(void){
     if(EXTI->PR & EXTI_PR_PR13){
         start = !start;
         TIM4->CR1 |= TIM_CR1_CEN;
         EXTI->PR |= EXTI_PR_PR13; // Clear pending bit
+        send_string("Button Pressed\r\n");
+        char buffer[50];
+        sprintf(buffer, "Start: %d\r\n", start);
+        send_string(buffer);
     }
 }
 
@@ -209,15 +121,17 @@ int main(void){
     NVIC_EnableIRQ(EXTI15_10_IRQn);
     NVIC_SetPriority(EXTI15_10_IRQn, 2);
 
+    uint32_t distance = 0;
     while(1){
         display_num(TIM4->CNT/100, 1);
-        read_uv_sensors();
-        uint32_t distance = ultrasonic_measure();
-        if(start && !mode){
+        read_uv_sensors(&sensor);
+        distance = ultrasonic_measure();
+        if(start){
+            send_string("Started\r\n");
             if(distance < 1000){ //we might have to adjust 1000 since its a placeholder distance
                 avoid_wall();  
             }else{
-                blank_drive();  
+                blank_drive(&mode);  
             }
         }else{
             TIM3->CCR3 = SERVO_NEUTRAL_PULSE_WIDTH;
