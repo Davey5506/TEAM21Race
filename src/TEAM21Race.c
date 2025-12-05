@@ -1,7 +1,5 @@
 #include "hat.h"
 #include "drive.h"
-#include "avoid.h"
-#include "usMeasure.h"
 #include <stdio.h>
 
 #define SERVO_NEUTRAL_PULSE_WIDTH 1500 // 1.5ms pulse width for neutral position
@@ -20,10 +18,41 @@ volatile uint8_t mode = 0;
 volatile uint16_t sensor = 0;
 volatile bool start = false;
 
-void delay_us(uint32_t us){
-    uint32_t start = SysTick->VAL;
-    uint32_t ticks = (SYSTEM_FREQ / 1000000) * us;
-    while((SysTick->VAL - start) < ticks);
+volatile uint32_t rise_time = 0;
+volatile uint32_t fall_time = 0;
+volatile uint32_t pulse_duration = 0;
+volatile uint32_t pulse_width = 0; 
+volatile float distance = 0.0; // in cm
+
+void init_exti0(void){
+    init_gp_timer(TIM2, 1000000, 0xFFFFFFFF, true); // 1MHz timer for microsecond precision
+    // Configure EXTI for ultrasound echo pin (PB0)
+    RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN; // enable SYSCFG clock
+    SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI0_PB; // EXTI0 from PB0
+    EXTI->IMR |= EXTI_IMR_IM0; // unmask EXTI0
+    EXTI->RTSR |= EXTI_RTSR_TR0; // rising edge trigger
+    EXTI->FTSR |= EXTI_FTSR_TR0; // falling edge trigger
+    NVIC_EnableIRQ(EXTI0_IRQn);
+    NVIC_SetPriority(EXTI0_IRQn, 0);
+}
+
+void SysTick_Handler(void){
+    write_pin(ULTRA_SOUND.TRIG_PORT, ULTRA_SOUND.TRIG_PIN, HIGH);
+    delay_us(10);
+    write_pin(ULTRA_SOUND.TRIG_PORT, ULTRA_SOUND.TRIG_PIN, LOW);
+}
+void EXTI0_IRQHandler(void){
+    if(EXTI->PR & EXTI_PR_PR0){
+        if(ULTRA_SOUND.ECHO_PORT->IDR & (1 << ULTRA_SOUND.ECHO_PIN)){
+            rise_time = TIM2->CNT;
+        }else{
+            fall_time = TIM2->CNT;
+            pulse_duration = (fall_time >= rise_time) ? (fall_time - rise_time) : (0xFFFFFFFF - rise_time + fall_time + 1);
+            pulse_duration /= 16; // convert to microseconds
+            distance = ((pulse_duration) / 58.0); // in cm
+        }
+        EXTI->PR |= EXTI_PR_PR0;
+    }
     return;
 }
 
@@ -63,11 +92,13 @@ void PWM_Output_PC6_Init(void){
 }
 
 int main(void){
+    init_usart(115200);
     //Initialize ultrasonic sensor
+    init_sys_tick(8000000);
+    init_exti0();
     init_ultrasound();
     // Initialize SSD
     init_ssd(10);
-    init_usart(115200);
     // Setup TIM3
     init_gp_timer(TIM3, TIM3_FREQ_HZ, PWM_PERIOD, false);
     // PWM mode 1 for CH3 and CH4
@@ -76,6 +107,10 @@ int main(void){
     TIM3->CCR3 = SERVO_NEUTRAL_PULSE_WIDTH; // PC8
     TIM3->CCR4 = SERVO_NEUTRAL_PULSE_WIDTH;
     TIM3->CR1 |= TIM_CR1_CEN;
+
+    // Initialize and start TIM2 for ultrasonic measurement (1MHz clock)
+    init_gp_timer(TIM2, 1000000, 0xFFFFFFFF, false);
+    TIM2->CR1 |= TIM_CR1_CEN;
 
     init_gp_timer(TIM4, 1000, 0xFFFF, false);
     // Set up servos
@@ -119,13 +154,15 @@ int main(void){
     while(1){
         display_num(TIM4->CNT/100, 1);
         read_uv_sensors(&sensor);
-        trigger_pulse();
+        delay_us(60000); // 60ms between measurements
+        char buffer[50];
+        sprintf(buffer, "Distance: %.2f cm\r\n", distance);
+        send_string(buffer);
         if(start){
-            send_string("Started\r\n");
-            if(distance < 1000){ //we might have to adjust 1000 since its a placeholder distance
-                avoid_wall();  
+            if(distance < 35){
+                blank_drive(&mode);
             }else{
-                blank_drive(&mode);  
+                avoid_obstacle(sensor);
             }
         }else{
             TIM3->CCR3 = SERVO_NEUTRAL_PULSE_WIDTH;
