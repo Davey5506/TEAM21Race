@@ -61,10 +61,6 @@ void EXTI15_10_IRQHandler(void){
         start = !start;
         TIM4->CR1 |= TIM_CR1_CEN;
         EXTI->PR |= EXTI_PR_PR13; // Clear pending bit
-        send_string("Button Pressed\r\n");
-        char buffer[50];
-        sprintf(buffer, "Start: %d\r\n", start);
-        send_string(buffer);
     }
 }
 
